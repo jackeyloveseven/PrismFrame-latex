@@ -40,25 +40,22 @@
 
 \setcounter{secnumdepth}{0} %May be changed to 1 or 2 if section numbers are desired.
 
+\title{SynergyFrame: Orchestrating Control Signals for Photorealistic Stylization}
+\author{
+    %Authors
+    % All authors must be in the same font size and format.
+    Yi Li\
+    , Chengyan Li
+}
+\affiliations{
+    Dalian University of Technology\
+    1486591674@qq.com
+}
 
 
 
 \begin{document}
 \maketitle
-
-\title{SynergyFrame: Orchestrating Control Signals for Photorealistic Stylization}
-\author{
-    %Authors
-    % All authors must be in the same font size and format.
-    Author One\
-    Author Two
-}
-\affiliations{
-    Affiliation One\
-    Affiliation Two\
-    email@example.com
-}
-
 \begin{abstract}
 Achieving photorealistic stylization in multi-guided generative tasks is often hindered by underlying conflicts between control signals, such as geometric structure and artistic style. To address this, we introduce SynergyFrame, a unified framework that transforms this conflict into collaboration. SynergyFrame is built on two pillars: (1) Physical Prior Injection, which uses novel multi-scale geometry and lighting-aware modules to establish a foundation of realism, and (2) Adaptive Semantic Fusion. At the core of this second pillar is our Semantic Sparse Attention (SSA) mechanism, a training-free attention control method. SSA intelligently adapts to different generative workflows: it overcomes signal suppression in the constrained Inpainting pipeline to enable fine-grained stylization, and it prevents content leakage and artifacts in the flexible Image-to-Image pipeline. As a plug-and-play solution, SynergyFrame significantly enhances the performance of both major workflows, establishing a new paradigm for synergistic, multi-guided image synthesis.
 \end{abstract}
@@ -67,7 +64,7 @@ Achieving photorealistic stylization in multi-guided generative tasks is often h
 \section{Introduction}
 \label{sec:introduction}
 
-The advent of diffusion models has unlocked unprecedented capabilities in controllable image generation, enabling users to guide synthesis with various inputs like text, images, and geometric maps. A paramount goal in this domain is to achieve \textbf{synergistic control}, where multiple guidance signals—such as geometric structure, lighting environment, and artistic style—are orchestrated to produce a single, coherent, and photorealistic output. However, achieving this synergy remains a significant challenge. When multiple powerful control agents, like ControlNet~\cite{controlnet} for structure and IP-Adapter~\cite{ipadapter} for style, are deployed simultaneously, they often compete rather than collaborate. This underlying \textbf{control signal conflict} manifests as a common bottleneck, degrading the quality of results across different generative workflows.
+The advent of diffusion models has unlocked unprecedented capabilities in controllable image generation, enabling users to guide synthesis with various inputs like text, images, and geometric maps. A paramount goal in this domain is to achieve \textbf{synergistic control}, where multiple guidance signals—such as geometric structure, lighting environment, and artistic style—are orchestrated to produce a single, coherent, and photorealistic output. However, achieving this synergy remains a significant challenge. When multiple powerful control agents, like ControlNet~\cite{zhang2023controlnet} for structure and IP-Adapter~\cite{ye2023ipadapter} for style, are deployed simultaneously, they often compete rather than collaborate. This underlying \textbf{control signal conflict} manifests as a common bottleneck, degrading the quality of results across different generative workflows.
 
 This conflict presents distinct challenges for the two dominant paradigms in localized image editing: \textbf{Inpainting-based} and \textbf{Image-to-Image-based} stylization. The Inpainting workflow, while excellent at preserving background content, imposes strong structural and boundary constraints that tend to suppress the nuanced expression of injected style features, often leading to bland or incomplete stylization. Conversely, the Image-to-Image workflow offers greater creative freedom but is prone to generating undesirable artifacts, such as content leakage from the style reference or checkerboard patterns in unmasked regions, thereby compromising the integrity of the original content.
 
@@ -88,19 +85,19 @@ Our work is positioned at the intersection of three dynamic research areas: cont
 
 \subsection{Controllable Generation with Multiple Guides}
 
-The ability to guide diffusion models with precise, user-defined inputs has been a major focus of recent research. A seminal work, ControlNet~\cite{controlnet}, introduced an architectural innovation allowing pre-trained models to be conditioned on spatial inputs like depth maps, canny edges, or human poses, enabling strong structural control. Concurrently, IP-Adapter~\cite{ipadapter} and its variants~\cite{ipadapter_plus} provided a powerful mechanism for injecting style and content from a reference image via a decoupled cross-attention strategy. 
+The ability to guide diffusion models with precise, user-defined inputs has been a major focus of recent research. A seminal work, ControlNet~\cite{zhang2023controlnet}, introduced an architectural innovation allowing pre-trained models to be conditioned on spatial inputs like depth maps, canny edges, or human poses, enabling strong structural control. Concurrently, IP-Adapter~\cite{ye2023ipadapter} and its variants~\cite{ipadapter_plus} provided a powerful mechanism for injecting style and content from a reference image via a decoupled cross-attention strategy. 
 
 While these tools are highly effective in isolation, their combination for complex tasks like local stylization reveals a fundamental challenge. The straightforward application of both ControlNet (for geometry) and IP-Adapter (for style) often leads to suboptimal results, as the powerful structural guidance can suppress or overwhelm the nuanced style signals. Our work directly confronts this \textbf{control signal conflict}, a problem largely overlooked by prior works that focus on the capabilities of individual control agents rather than their interplay.
 
 \subsection{3D and Geometry-Aware Synthesis}
 
-To enhance the realism of image generation, a growing body of work seeks to incorporate 3D and geometric priors. Methods like ZeST~\cite{zest} leverage depth maps and simulated lighting to achieve impressive zero-shot material transfer within an inpainting framework. These approaches validate the importance of physical priors, a principle central to our work. Our \textbf{Physical Prior Injection} pillar, with its Multi-Scale Geometric Awareness and Lighting-Aware Initialization modules, builds upon this trend but with a more sophisticated approach to detail and realism.
+To enhance the realism of image generation, a growing body of work seeks to incorporate 3D and geometric priors. Methods like ZeST~\cite{cheng2024zest} leverage depth maps and simulated lighting to achieve impressive zero-shot material transfer within an inpainting framework. These approaches validate the importance of physical priors, a principle central to our work. Our \textbf{Physical Prior Injection} pillar, with its Multi-Scale Geometric Awareness and Lighting-Aware Initialization modules, builds upon this trend but with a more sophisticated approach to detail and realism.
 
 However, works like ZeST are fundamentally bound to the inpainting paradigm. While effective for material replacement, they inherit its limitations, particularly the struggle to apply fine-grained style details under strong geometric constraints. They demonstrate the need for physical priors but do not resolve the underlying conflict between structural and stylistic controls. \textbf{SynergyFrame}, in contrast, not only incorporates advanced physical priors but also introduces the necessary mechanisms to ensure these priors can coexist and collaborate with rich stylistic guidance.
 
 \subsection{Decoupling and Synergy in Generative Models}
 
-Recognizing the issue of entangled representations, several recent methods have focused on decoupling different factors of generation. InstantStyle~\cite{instantstyle} and DEADiff~\cite{deadiff} propose techniques to separate style from content semantics at the feature level, enabling better preservation of the text prompt's intent during stylization. Similarly, MCA-Ctrl~\cite{mca-ctrl} introduces a collaborative attention mechanism to harmonize multiple inputs, such as a reference face and a target pose, preventing identity or attribute leakage.
+Recognizing the issue of entangled representations, several recent methods have focused on decoupling different factors of generation. InstantStyle~\cite{wang2024instantstyle} and DEADiff~\cite{deadiff} propose techniques to separate style from content semantics at the feature level, enabling better preservation of the text prompt's intent during stylization. Similarly, MCA-Ctrl~\cite{yang2025multi} introduces a collaborative attention mechanism to harmonize multiple inputs, such as a reference face and a target pose, preventing identity or attribute leakage.
 
 These methods are spiritually aligned with our goal of achieving synergy. However, they primarily address the decoupling of \textit{input modalities} (e.g., text vs. image, identity vs. structure). Our work tackles a different, more foundational level of conflict: the one arising between \textbf{different control tools and generative workflows}. Our \textbf{Adaptive Semantic Fusion} pillar, powered by Semantic Sparse Attention (SSA), provides a novel solution. It does not just disentangle style from content; it adaptively modulates the application of style itself, responding to the specific constraints of the chosen workflow (Inpainting or Image-to-Image). This allows SynergyFrame to be the first framework to systematically analyze and resolve the conflicts inherent in multi-guided, workflow-dependent generation, achieving a true, robust synergy.
 
@@ -115,15 +112,14 @@ To address the challenge of control signal conflict in multi-guided generation, 
 The first pillar of SynergyFrame ensures that all subsequent generation is grounded in a high-fidelity representation of the scene's physical properties. This is achieved through two key modules.
 
 \subsubsection{Multi-Scale Geometric Awareness}
-To ensure that generated textures realistically conform to the object's 3D shape, we move beyond standard depth estimation. We employ a \textbf{Multi-Scale Depth Enhancement (MSDE)} module, which takes an initial depth map from a monocular estimator like DepthAnythingV2~\cite{depthanythingv2} and enriches it with fine-grained geometric details. As implemented in our `Geometry_Estimating.py`, this module performs a weighted fusion of several features: (1) the smoothed initial depth map, which preserves overall structure; (2) high-frequency boundary features extracted from the RGB content image using a Canny edge detector, which capture sharp contours; and (3) gradient and roughness features computed from the depth map using Sobel and Laplacian filters, which describe local surface orientation. The resulting enhanced depth map provides a comprehensive geometric prior that is fed to ControlNet~\cite{controlnet}, ensuring superior structural fidelity.
-
+To ensure that generated textures realistically conform to the object's 3D shape, we move beyond standard depth estimation. We employ a \textbf{Multi-Scale Depth Enhancement (MSDE)} module, which takes an initial depth map from a monocular estimator like DepthAnythingV2~\cite{yin2024depthanythingv2} and enriches it with fine-grained geometric details. As implemented in our 'GeometryEstimating.py', this module performs a weighted fusion of several features: (1) the smoothed initial depth map, which preserves overall structure; (2) high-frequency boundary features extracted from the RGB content image using a Canny edge detector, which capture sharp contours; and (3) gradient and roughness features computed from the depth map using Sobel and Laplacian filters, which describe local surface orientation. The resulting enhanced depth map provides a comprehensive geometric prior that is fed to ControlNet~\cite{zhang2023controlnet}, ensuring superior structural fidelity.
 \subsubsection{Lighting-Aware Initialization}
-To ensure stylistic elements integrate seamlessly with the scene's illumination, we employ a \textbf{Directional Shading Module (DSM)}. Instead of starting the diffusion process from pure noise, which would disregard the existing lighting environment, the DSM generates a physically plausible `init_image`. It first estimates a surface normal map from our enhanced depth map. Then, using a controllable light direction, it applies a classic ambient-plus-diffuse lighting model to render a shaded version of the target object. By providing this coherently shaded image as the starting point for the diffusion process, we guide the model to generate textures and materials that are consistent with the scene's lighting, producing realistic highlights and shadows.
+To ensure stylistic elements integrate seamlessly with the scene's illumination, we employ a \textbf{Directional Shading Module (DSM)}. Instead of starting the diffusion process from pure noise, which would disregard the existing lighting environment, the DSM generates a physically plausible 'init-image'. It first estimates a surface normal map from our enhanced depth map. Then, using a controllable light direction, it applies a classic ambient-plus-diffuse lighting model to render a shaded version of the target object. By providing this coherently shaded image as the starting point for the diffusion process, we guide the model to generate textures and materials that are consistent with the scene's lighting, producing realistic highlights and shadows.
 
 \subsection{Pillar II: Adaptive Semantic Fusion}
 \label{sec:fusion}
 
-The second and core innovative pillar of SynergyFrame is our mechanism for resolving control conflicts and enabling detailed style application across different workflows. This is achieved by our novel \textbf{Semantic Sparse Attention (SSA)} mechanism, implemented as a custom attention processor (`SemanticMaskedStyleAttnProcessor`) that replaces the standard cross-attention processors in the U-Net.
+The second and core innovative pillar of SynergyFrame is our mechanism for resolving control conflicts and enabling detailed style application across different workflows. This is achieved by our novel \textbf{Semantic Sparse Attention (SSA)} mechanism, implemented as a custom attention processor ('SemanticMaskedStyleAttnProcessor') that replaces the standard cross-attention processors in the U-Net.
 
 \subsubsection{Mechanism of Semantic Sparse Attention (SSA)}
 Standard cross-attention in style-injection models like IP-Adapter allows every content query to attend to all style keys. This often leads to an indiscriminate blending of style features, causing content leakage and a dilution of salient stylistic elements. SSA addresses this by enforcing sparsity in the attention mechanism. For each content query, we first compute the full matrix of similarity scores with the style keys. Then, we dynamically select only the \textbf{top-$k$} most semantically similar style keys for that specific query. Attention scores for all other keys are set to negative infinity. This ensures that each part of the content image only draws style information from the most relevant parts of the style reference, enabling a more discerning and semantically meaningful fusion. This entire process is training-free, controlled simply by the hyperparameter $k$.
@@ -143,7 +139,7 @@ By intelligently adapting its function, our Semantic Sparse Attention mechanism 
 We conduct a comprehensive set of experiments to validate the core hypothesis of our work: that SynergyFrame, by orchestrating control signals, can universally enhance both Inpainting and Image-to-Image workflows for photorealistic local stylization. Our evaluation is structured to demonstrate how our framework addresses the distinct challenges of each workflow.
 
 \subsection{Implementation Details}
-Our framework is built upon the Stable Diffusion XL (SDXL) model~\cite{sdxl}, using ControlNet~\cite{controlnet} for geometric guidance and a custom IP-Adapter~\cite{ipadapter} for style injection. For geometric prior extraction, we use the DepthAnythingV2 model~\cite{depthanythingv2}. All experiments are performed on a single NVIDIA RTX 4090 GPU with 50 denoising steps and a guidance scale of 7.5. The sparsity level $k$ for our Semantic Sparse Attention (SSA) is set to 10 unless otherwise specified.
+Our framework is built upon the Stable Diffusion XL (SDXL) model~\cite{podell2023sdxl}, using ControlNet~\cite{zhang2023controlnet} for geometric guidance and a custom IP-Adapter~\cite{ye2023ipadapter} for style injection. For geometric prior extraction, we use the DepthAnythingV2 model~\cite{yin2024depthanythingv2}. All experiments are performed on a single NVIDIA RTX 4090 GPU with 50 denoising steps and a guidance scale of 7.5. The sparsity level $k$ for our Semantic Sparse Attention (SSA) is set to 10 unless otherwise specified.
 
 \subsection{Empowering the Inpainting Workflow}
 \label{sec:exp_inpainting}
